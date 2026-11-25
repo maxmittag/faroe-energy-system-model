@@ -1,0 +1,10 @@
+# Python packages for the data preparation in pipeline/ (not needed to run the model itself).
+# Tested with Python 3.11.
+pandas==3.0.6
+numpy==2.4.3
+tzdata==2025.3    # time zone data for the SEV local time -> UTC conversion (needed on Windows)
+
+# Only to re-download the Copernicus data (pipeline/download/download_c3s.py):
+# cdsapi
+# xarray
+# netCDF4
