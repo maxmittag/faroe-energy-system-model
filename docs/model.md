@@ -79,7 +79,7 @@ All settings and their defaults are in `src/config.jl` (no hidden defaults); cha
 | `cable_loss` | 0.035 | share of the imported energy lost in cable and converters (only $1-loss$ arrives, all is paid) |
 | `outage_hours` | 0 | length of one cable outage; 1,344 h = 8 weeks (typical repair), 672 h = 4 weeks (fast repair) |
 | `outage_start` | 0 | first outage hour; 0 = worst window of the year (most demand left after existing wind and biogas) |
-| `backup` | `none` | during the outage: `none` = local green backup (no oil), `oil` = existing Sund plant (86 MW, sunk) may run, only in outage hours |
+| `backup` | `none` | during the outage: `none` = local green backup (no oil), `oil` = existing Sund plant (86 MW, sunk) may run, only in outage hours of cable runs (the no-cable case stays oil-free) |
 | `backup_vc` | 150 | cost of backup electricity, EUR/MWh (**placeholder**, to be replaced with a sourced SEV or biodiesel value) |
 | `results_dir` | `results` | output folder |
 

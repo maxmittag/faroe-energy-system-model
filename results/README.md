@@ -16,4 +16,5 @@ Checks (must be ~0): `check_cost_sum_err_EUR`, `check_balance_err_max_MW`, `chec
 | `test_isolation/` | `cable_loss=0 outage_hours=0`: only the new cable cost (PR2 test) |
 | `outage4w_green/` | 4-week outage (672 h, from 7 Nov 2025), local green backup |
 | `outage8w_green/` | 8-week outage (1,344 h, from 15 Apr 2026), local green backup |
+| `outage4w_oil/` | 4-week outage, Sund oil plant as backup at 150 EUR/MWh (placeholder) |
 | `outage8w_oil/` | 8-week outage, Sund oil plant as backup at 150 EUR/MWh (placeholder) |

@@ -182,8 +182,9 @@ function solve_model(d, ntc; endo = false, cap = 1000.0, no_export = true)
         ntc = NTC
     end
 
-    # oil/biodiesel backup, only in outage hours and only with backup = "oil"
-    OIL_OK = d.backup == "oil" ? d.OUTAGE : (1:0)
+    # oil/biodiesel backup, only in outage hours, only with backup = "oil" and only if there is a cable
+    # (without a cable nothing can fail, so the no-cable case stays oil-free)
+    OIL_OK = (d.backup == "oil" && build == 1.0) ? d.OUTAGE : (1:0)
     backup_cost = isempty(OIL_OK) ? 0.0 : @expression(m, d.backup_vc * sum(G["oil", t] for t in OIL_OK))
 
     # min C = C_gen + C_inv (reader 7.1) + trade with the neighbour at pi_t + yearly cable cost + backup
