@@ -15,7 +15,11 @@ Needs [Julia](https://julialang.org/downloads) 1.10 or newer (tested with 1.13.1
 julia --project=. -e "using Pkg; Pkg.instantiate()"   # once: installs the pinned packages (JuMP, HiGHS, CSV, DataFrames)
 julia --project=. run.jl                              # all scenarios, about 20-25 min
 julia --project=. run.jl is_2030                      # only the main set (Iceland, 2030 demand), about 5 min
+julia --project=. run.jl is_2030 outage_hours=1344 backup=oil   # change settings (key=value)
 ```
+
+All settings and their defaults (cable losses 3.5 %, cable outage, backup during the outage, output folder) are in
+`src/config.jl`; see [docs/model.md](docs/model.md#settings).
 
 Results are written to `results/` (one row per case: cost, new capacities, imports, cost split and checks).
 Sets: `is_2030`, `gb_2030`, `is_today`, `gb_today` (`is` = Iceland, `gb` = Scotland).
@@ -26,6 +30,7 @@ Sets: `is_2030`, `gb_2030`, `is_today`, `gb_today` (`is` = Iceland, `gb` = Scotl
 run.jl              entry point: runs the scenarios, writes results/
 src/model.jl        the model: data loading, parameters, variables, objective, constraints
 src/report.jl       result table and checks (energy balance, oil = 0, cost components = objective)
+src/config.jl       all settings with their defaults
 data/processed/     the CSV files the model reads (see data/README.md)
 data/raw/           original downloads (SEV, Copernicus C3S, Elma, Elexon) with sources and licences
 pipeline/           Python scripts that turn data/raw into data/processed (optional, outputs are included)
@@ -58,7 +63,9 @@ downloaded; it is not needed.
 - Existing wind farms use SEV output / installed capacity; new wind and solar use weather-based capacity factors
   from Copernicus C3S.
 - Costs from the Danish Energy Agency technology catalogues (Faroe-specific solar costs from Tróndheim et al., 2021);
-  cable 450 km to Iceland, 400 km to Scotland; 5 % discount rate.
+  5 % discount rate.
+- Cable 450 km to Iceland, 400 km to Scotland; cost = fixed part + part per MW (Härtel et al., 2017, x 1.6);
+  3.5 % losses; optional outage of the cable in the worst weeks of the year.
 
 The full list with sources is in [docs/model.md](docs/model.md).
 

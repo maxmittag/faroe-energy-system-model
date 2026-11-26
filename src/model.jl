@@ -9,7 +9,8 @@
 #  ava availability, ann annuity, F_z,zz,t flow between zones, ntc transfer capacity.
 #  New symbols (not in the reader): bio_t fixed biogas, inflow_t water into the hydro
 #  reservoir, L_hyd hydro reservoir level, SPILL_t spilled water, pi_import_t price of
-#  the neighbour, ann_x yearly cable cost per MW.
+#  the neighbour, fix_x / var_x yearly cable cost: fixed part and part per MW (Härtel et al. 2017),
+#  loss cable losses, OUTAGE hours in which the cable is down.
 # =============================================================================
 using JuMP
 using HiGHS
@@ -21,13 +22,14 @@ annuity_factor(n, r) = r * (1 + r)^n / (((1 + r)^n) - 1)              # reader 7
 successor(arr, x) = (x == length(arr)) ? 1 : x + 1                     # cyclic year: last hour -> first hour
 
 """
-    load_inputs(input_file; cable_km, existing_ava_file)
+    load_inputs(input_file; cable_km, existing_ava_file, cfg)
 
 Reads one hourly input file (data/processed/input_<year>_<counterpart>.csv), the technology table and
 the availability for the EXISTING wind farms, and computes all parameters of the model.
-`cable_km` sets the cable length (Iceland 450 km, Scotland 400 km).
+`cable_km` sets the cable length (Iceland 450 km, Scotland 400 km); `cfg` holds the
+cable reliability settings (see src/config.jl).
 """
-function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::String)
+function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::String, cfg)
     time_series = CSV.read(joinpath(DATA_DIR, input_file), DataFrame)
     # Existing wind (and PV) capacity uses the availability in `existing_ava_file`. With
     # base_sev_elma.csv this is SEV output / installed capacity (current group setting); new capacity
@@ -71,11 +73,47 @@ function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::S
     end
     ic_storage_cap["phs"] = 0.0                   # pumped hydro: whole cost on the turbine MW (DEA sheet 160)
 
-    # cable (DEA transport catalogue 2025, sheets 1.7 / 1.8), cost per MW of ntc
-    oc_cable = cable_km * 3220.0                  # EUR/MW, HVDC submarine cable, 3,220 EUR/MW/km
-    oc_converter = 640.0e3                        # EUR/MW, converter pair
-    ann_x = (oc_cable + oc_converter) * annuity_factor(40, interest_rate) +
-            0.025 * oc_cable + 0.015 * oc_converter   # EUR per MW per year incl. fixed O&M
+    # --- cable cost: fixed part + part per MW (Härtel et al. 2017; port of Lukas' PR2) ---
+    # A small cable costs almost as much as a big one: cable ship, route and two converter stations
+    # are paid whatever the size. Härtel et al. (2017), Eq. 2 (cable) and Eq. 3 (converter):
+    #   cable B = B_lp*l*p + (B_l*l + B_0),  converter N = N_p*p + N_0   (one system, p << 2 GW)
+    # Parameters: "average" set, Table 1, converted to EUR and MW. Open access: https://core.ac.uk/download/249983198.pdf
+    B_lp = 970.0             # EUR per MW and km        (cable, grows with size and length)
+    B_l = 0.68e6             # EUR per km               (cable, FIXED: laying the route)
+    B_0 = 0.70e6             # EUR                      (cable, FIXED: per project)
+    N_p = 80.88e3            # EUR per MW per station   (converter, grows with size)
+    N_0 = 28.38e6            # EUR per station          (converter, FIXED)
+    n_stations = 2           # interconnector: one converter station at each end
+    # Price level: the 2011-16 parameters x 1.6 (group decision: one price scenario). Own calibration:
+    # Celtic Interconnector actual / formula about 1.7, Shetland HVDC Link about 1.6-1.9; 1.6 = lower end.
+    cable_scale = 1.6
+    cable_lifetime = 40      # years (own assumption)
+    cable_om = 0.01          # O&M per year, share of the investment (own assumption; was 2.5 % cable / 1.5 % converter)
+    af_x = annuity_factor(cable_lifetime, interest_rate)
+    inv_fix_x = (B_l * cable_km + B_0) + n_stations * N_0           # EUR, fixed terms of Eq. 2 + 3
+    inv_var_x = B_lp * cable_km + n_stations * N_p                  # EUR per MW, per-MW terms of Eq. 2 + 3
+    fix_x = cable_scale * inv_fix_x * (af_x + cable_om)             # EUR per year, if a cable is built
+    var_x = cable_scale * inv_var_x * (af_x + cable_om)             # EUR per MW and year
+    # Iceland 450 km: fix_x 39.7 M EUR/yr, var_x 65,357 EUR/MW/yr -> 100 MW = 46.2 M EUR/yr (old linear DEA cost: 16.8)
+
+    # --- cable reliability: losses and one outage (port of Lukas' PR1) ---
+    # Only (1 - loss) of the imported energy arrives; the Faroes pay for all of it.
+    # The outage is a design case: by default it is put in the worst window of the year, i.e. the one with
+    # the most demand left after existing wind and biogas (a calm, high-demand period).
+    demand = time_series[:, :demand] |> Vector
+    bio = time_series[:, :biogas] |> Vector
+    residual = demand .- time_series_existing[:, :ava_wind] .* g_max["wind"] .- bio
+    outage_hours, outage_start = cfg.outage_hours, cfg.outage_start
+    if outage_hours > 0
+        if outage_start == 0
+            cs = cumsum(vcat(0.0, residual))                                   # running sum, for fast window sums
+            outage_start = argmax([cs[t + outage_hours] - cs[t] for t in 1:(length(T) - outage_hours + 1)])
+        end
+        OUTAGE = outage_start:(outage_start + outage_hours - 1)
+    else
+        outage_start = 0
+        OUTAGE = 1:0                                                           # empty: no outage
+    end
 
     return (
         input_file = input_file, T = T, P = P, DISP = DISP, NONDISP = NONDISP, S = S, INV = INV,
@@ -83,12 +121,15 @@ function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::S
         g_max = g_max, d_max = d_max, l_max = l_max, eff_in = eff_in, eff_out = eff_out, vc = vc,
         # pumped hydro site Mýruverkið II (SEV): 70 MW pump / 40 MW turbine, 20 h at full turbine power
         phs_pump_ratio = 1.75, phs_hours = 20.0, phs_cap_max = 40.0,
-        cable_km = cable_km, ann_x = ann_x,
-        demand = time_series[:, :demand] |> Vector,                           # d_t, MW
+        cable_km = cable_km, cable_scale = cable_scale, fix_x = fix_x, var_x = var_x,
+        cable_loss = cfg.cable_loss, outage_hours = outage_hours, outage_start = outage_start, OUTAGE = OUTAGE,
+        outage_start_time = outage_hours > 0 ? string(time_series[outage_start, :time_utc]) : "",
+        backup = cfg.backup, backup_vc = cfg.backup_vc,
+        demand = demand,                                                      # d_t, MW
         availability = Dict("wind" => time_series[:, :ava_wind], "pv" => time_series[:, :ava_pv]),
         availability_existing = Dict("wind" => time_series_existing[:, :ava_wind],
                                      "pv" => time_series_existing[:, :ava_pv]),
-        bio = time_series[:, :biogas] |> Vector,                              # bio_t (new), fixed injection
+        bio = bio,                                                            # bio_t (new), fixed injection
         inflow = time_series[:, :hydro_inflow] |> Vector,                     # inflow_t (new), MWh per hour
         pi_import = time_series[:, :pi] |> Vector,                            # pi_t (new), EUR/MWh
         dispatch_scale = 8760 / length(T),
@@ -129,19 +170,31 @@ function solve_model(d, ntc; endo = false, cap = 1000.0, no_export = true)
         F_IS_FO[T] >= 0        # import neighbour -> Faroe Islands
     end
 
-    # cable size as investment variable (like CAP_G): ntc becomes NTC
+    # build decision for the fixed cable cost: NOT a variable. A run either has a cable (build = 1) or not.
+    # "Build at all?" = compare a cable run with the no-cable run. For one yes/no decision this gives the same
+    # answer as a 0/1 variable (MILP), but the model stays an LP and the hourly duals (prices) stay valid.
+    build = (endo || ntc > 0) ? 1.0 : 0.0
+
+    # cable size as investment variable (like CAP_G): ntc becomes NTC.
+    # Read it as "IF a cable is built, which size?": only var_x depends on the size.
     if endo
         @variable(m, 0 <= NTC <= cap)
         ntc = NTC
     end
 
-    # min C = C_gen + C_inv (reader 7.1) + trade with the neighbour at pi_t + yearly cable cost
+    # oil/biodiesel backup, only in outage hours and only with backup = "oil"
+    OIL_OK = d.backup == "oil" ? d.OUTAGE : (1:0)
+    backup_cost = isempty(OIL_OK) ? 0.0 : @expression(m, d.backup_vc * sum(G["oil", t] for t in OIL_OK))
+
+    # min C = C_gen + C_inv (reader 7.1) + trade with the neighbour at pi_t + yearly cable cost + backup
     @objective(m, Min,
         sum(vc[disp] * G[disp, t] for disp in DISP, t in T) * d.dispatch_scale
         + sum(d.ic_generation_cap[p] * CAP_G[p] for p in INV)
         + sum(d.ic_storage_cap[s] * CAP_L[s] for s in S)
         + sum(d.pi_import[t] * (F_IS_FO[t] - F_FO_IS[t]) for t in T) * d.dispatch_scale
-        + d.ann_x * ntc
+        + d.var_x * ntc          # cable: part per MW (Härtel et al. 2017)
+        + d.fix_x * build        # cable: fixed part (route + two converter stations), if a cable exists
+        + backup_cost            # backup fuel + O&M during a cable outage (0 if not used)
     )
 
     # wind and solar feed-in before curtailment (reader 7.2, split into existing and new capacity):
@@ -157,7 +210,8 @@ function solve_model(d, ntc; endo = false, cap = 1000.0, no_export = true)
         + d.bio[t]
         - sum(D_stor[s, t] for s in S)
         - CU[t]
-        + F_IS_FO[t] - F_FO_IS[t]
+        + (1 - d.cable_loss) * F_IS_FO[t]   # import: only (1 - loss) arrives
+        - F_FO_IS[t]
         ==
         d.demand[t]
     )
@@ -210,13 +264,16 @@ function solve_model(d, ntc; endo = false, cap = 1000.0, no_export = true)
     # brownfield: no new hydro or oil plants
     @constraint(m, NoNewCapacity[p = setdiff(P, INV)], CAP_G[p] == 0)
 
-    # without oil: G_oil,t = 0 in every hour
-    @constraint(m, NoOil[t = T], G["oil", t] == 0)
+    # without oil: G_oil,t = 0 in every hour, except outage hours if the oil plant is the backup
+    @constraint(m, NoOil[t in T; !(t in OIL_OK)], G["oil", t] == 0)
 
     # cable (reader 6.4): 0 <= F_z,zz,t <= ntc; one physical cable, so import + export <= ntc
     @constraint(m, MaxExport[t = T], F_FO_IS[t] <= ntc)
     @constraint(m, MaxImport[t = T], F_IS_FO[t] <= ntc)
     @constraint(m, OneCable[t = T], F_FO_IS[t] + F_IS_FO[t] <= ntc)
+
+    # cable outage: no flow in either direction
+    @constraint(m, CableOutage[t in d.OUTAGE], F_IS_FO[t] + F_FO_IS[t] == 0)
 
     # group decision 28.10.2026: import only, no export from the Faroes
     if no_export

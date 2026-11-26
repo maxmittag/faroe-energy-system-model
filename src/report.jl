@@ -21,19 +21,27 @@ function report(label, m, d, solve_s; counterpart, case_type, demand_case, ntc_f
     cu = sum(value(CU[t]) for t in T)
     # checks
     bal = [sum(value(G[g, t]) for g in DISP) + sum(value(feed_in[n, t]) for n in NONDISP) + d.bio[t] -
-           sum(value(D_stor[s, t]) for s in S) - value(CU[t]) + imp[t] - ex[t] - d.demand[t] for t in T]
+           sum(value(D_stor[s, t]) for s in S) - value(CU[t]) + (1 - d.cable_loss) * imp[t] - ex[t] - d.demand[t] for t in T]
     oil_max = maximum(value(G["oil", t]) for t in T)
+    # with an outage: oil may only run in outage hours (backup = "oil"); outside them it must be 0
+    oil_max_outside = maximum(value(G["oil", t]) for t in T if !(t in d.OUTAGE); init = 0.0)
+    backup_MWh = sum(value(G["oil", t]) for t in d.OUTAGE; init = 0.0)
+    backup_max = maximum(value(G["oil", t]) for t in d.OUTAGE; init = 0.0)
     # cost components (EUR per year), must add up to the objective
     c_inv_gen = sum(d.ic_generation_cap[p] * value(CAP_G[p]) for p in INV)
     c_inv_sto = sum(d.ic_storage_cap[s] * value(CAP_L[s]) for s in S)
     c_var = sum(d.vc[g] * value(G[g, t]) for g in DISP, t in T) * d.dispatch_scale
     c_trade = sum(d.pi_import[t] * (imp[t] - ex[t]) for t in T) * d.dispatch_scale
-    c_cable = d.ann_x * ntc_val
+    c_cable_fix = (endo || ntc_val > 0) ? d.fix_x : 0.0                 # same rule as `build` in model.jl
+    c_cable_var = d.var_x * ntc_val
+    c_cable = c_cable_fix + c_cable_var
+    c_backup = d.backup == "oil" ? d.backup_vc * backup_MWh : 0.0
     obj = objective_value(m)
     hit_cap = endo ? (ntc_val >= cap - 0.01) : false
     full_hours = ntc_val > 0 ? count(>=(ntc_val - 0.01), imp) : 0      # hours with the cable (almost) full
     out = hcat(head, DataFrame(
-        cable_km = ntc_val > 0 ? d.cable_km : 0.0, ann_x_EUR_per_MW = d.ann_x, cap_MW = cap, ntc_hit_cap = hit_cap,
+        cable_km = ntc_val > 0 ? d.cable_km : 0.0, cable_scale = d.cable_scale,
+        fix_x_EUR = d.fix_x, var_x_EUR_per_MW = d.var_x, cap_MW = cap, ntc_hit_cap = hit_cap,
         cost_MEUR = obj / 1e6, ntc_MW = ntc_val,
         new_wind_MW = value(CAP_G["wind"]), new_pv_MW = value(CAP_G["pv"]),
         new_bat_MW = value(CAP_G["battery"]), new_bat_MWh = value(CAP_L["battery"]), new_phs_MW = value(CAP_G["phs"]),
@@ -49,8 +57,15 @@ function report(label, m, d, solve_s; counterpart, case_type, demand_case, ntc_f
         hydro_GWh = sum(value(G["hydro", t]) for t in T) / 1e3,
         c_inv_gen_MEUR = c_inv_gen / 1e6, c_inv_storage_MEUR = c_inv_sto / 1e6, c_var_MEUR = c_var / 1e6,
         c_trade_MEUR = c_trade / 1e6, c_cable_MEUR = c_cable / 1e6,
-        check_cost_sum_err_EUR = c_inv_gen + c_inv_sto + c_var + c_trade + c_cable - obj,
+        c_cable_fix_MEUR = c_cable_fix / 1e6, c_cable_var_MEUR = c_cable_var / 1e6,
+        cable_cost_per_MWh_imported = sum(imp) > 0 ? c_cable / (sum(imp) * d.dispatch_scale) : NaN,
+        c_backup_MEUR = c_backup / 1e6,
+        cable_loss = d.cable_loss, import_lost_GWh = d.cable_loss * sum(imp) / 1e3,
+        outage_hours = d.outage_hours, outage_start_hour = d.outage_start, outage_start_utc = d.outage_start_time,
+        backup = d.backup, backup_vc = d.backup_vc, backup_GWh = backup_MWh / 1e3, backup_max_MW = backup_max,
+        check_cost_sum_err_EUR = c_inv_gen + c_inv_sto + c_var + c_trade + c_cable + c_backup - obj,
         check_balance_err_max_MW = maximum(abs.(bal)), check_oil_max_MW = oil_max,
+        check_oil_outside_outage_max_MW = oil_max_outside,
         check_export_max_MW = maximum(ex), check_import_max_MW = maximum(imp),
         solve_s = solve_s))
     println(rpad(label, 22), round(obj / 1e6, digits = 2), " MEUR/yr | cable ", round(ntc_val, digits = 1),
