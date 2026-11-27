@@ -1,0 +1,23 @@
+input_2030_iceland.csv: ava_wind_pc mean 0.413 (C3S ava_wind 0.639), hourly corr 0.869
+input_2030_scotland.csv: ava_wind_pc mean 0.413 (C3S ava_wind 0.639), hourly corr 0.869
+input_today_iceland.csv: ava_wind_pc mean 0.413 (C3S ava_wind 0.639), hourly corr 0.869
+input_today_scotland.csv: ava_wind_pc mean 0.413 (C3S ava_wind 0.639), hourly corr 0.869
+
+ERA5 100 m wind speed mean 8.37 m/s, hours above cut-out 25 m/s: 1
+reference, actual output after curtailment (lower bound): Gellingaklettur ~0.45, Húsahagi ~0.40; SEV fleet 0.27
+
+monthly mean wind availability:
+             pc    c3s
+time_utc              
+2025-10   0.489  0.716
+2025-11   0.360  0.604
+2025-12   0.499  0.699
+2026-01   0.513  0.743
+2026-02   0.420  0.677
+2026-03   0.625  0.836
+2026-04   0.411  0.639
+2026-05   0.301  0.522
+2026-06   0.294  0.497
+2026-07   0.275  0.457
+2026-08   0.256  0.544
+2026-09   0.509  0.739

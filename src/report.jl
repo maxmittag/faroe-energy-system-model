@@ -7,7 +7,10 @@ function report(label, m, d, solve_s; counterpart, case_type, demand_case, ntc_f
     T, DISP, NONDISP, S, INV = d.T, d.DISP, d.NONDISP, d.S, d.INV
     st = termination_status(m)
     head = DataFrame(case = label, counterpart = counterpart, case_type = case_type, demand_case = demand_case,
-        input = d.input_file, no_export = true, status = string(st), primal_status = string(primal_status(m)))
+        input = d.input_file, wind_profile = d.wind_profile, existing_wind_profile = d.existing_wind_profile,
+        cf_new_wind = sum(d.availability["wind"]) / length(d.T),
+        cf_existing_wind = sum(d.availability_existing["wind"]) / length(d.T),
+        no_export = true, status = string(st), primal_status = string(primal_status(m)))
     if st != MOI.OPTIMAL
         println(label, ": ", st); flush(stdout)
         return head
