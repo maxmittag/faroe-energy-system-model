@@ -122,12 +122,12 @@ Type: **F** = fact from a source, **G** = group decision, **A** = own assumption
 | A14 | Existing hydro | 37.3 MW, one aggregated reservoir, 5.85 GWh usable (50 % of 11.7 GWh) | SEV plant list; Ea Energy Analyses (2018) | F |
 | A15 | Hydro inflow | monthly SEV hydro production, flat within the month | SEV | F + A |
 | A16 | Biogas fixed as produced; existing battery 12 MW / 12.5 MWh | | SEV | F |
-| A17 | Wind cost | 1.036 M EUR/MW, fixed O&M 12,600 EUR/MW/yr, 30 yr | DEA, sheet 20, 2030 | F |
-| A18 | Solar cost (Faroe-specific) | 1.11 M EUR/MW, fixed O&M 7,000 EUR/MW/yr, 30 yr | Tróndheim et al. (2021), Table 5 | F |
-| A19 | Battery cost | 170 k EUR/MW + 151 k EUR/MWh, fixed O&M 574 EUR/MW/yr, 25 yr, round trip 92 % | DEA storage, sheet 180, 2030 | F |
-| A20 | Pumped hydro option | 4.25 M EUR/MW, fixed O&M 8,507 EUR/MW/yr, 50 yr, round trip 75 %; max 40 MW turbine, pump 1.75 x turbine, 20 h | DEA storage, sheet 160; SEV Mýruverkið II | F |
+| A17 | Wind cost | 1.147 M EUR2020/MW, fixed O&M 16,663 EUR/MW/yr, 30 yr (variable O&M 1.98 EUR/MWh not modelled) | DEA el/DH v0019, sheet 20, 2030 ([cost_data.md](cost_data.md)) | F |
+| A18 | Solar cost | 0.476 M EUR2020/MW, fixed O&M 8,457 EUR/MW/yr, 40 yr (DEA EUR2025 x 0.856) | DEA el/DH v0019, sheet 22, 2030 (Danish, not Faroe-specific) | F |
+| A19 | Battery cost | 84 k EUR2020/MW + 195 k EUR2020/MWh, fixed O&M 8,091 EUR/MW/yr, 20 yr, round trip 91 % (AC) | DEA storage v0011, sheet 180, 2030 | F |
+| A20 | Pumped hydro option | 4.25 M EUR/MW, fixed O&M 8,507 EUR/MW/yr, 50 yr, round trip 75 %; max 40 MW turbine, pump 1.75 x turbine, 20 h | DEA storage v0011, sheet 160 (header EUR2020, note C: 2011 level); SEV Mýruverkið II | F |
 | A21 | Storage discharge cost | 1 EUR/MWh | course model | F |
-| A22 | Cable cost | fixed part + part per MW (see above), price level x 1.6, 40 yr, O&M 1 %/yr | Härtel et al. (2017), Table 1; x 1.6 own calibration to Celtic Interconnector (EIB 20180149) and Shetland HVDC Link (Shetland News 31.10.2023); O&M own assumption | F + A |
+| A22 | Cable cost | fixed part + part per MW (see above), price level x 1.6 (about 2023 prices; EUR2020-consistent: x 1.41, see [cost_data.md](cost_data.md)), 40 yr, O&M 1 %/yr | Härtel et al. (2017), Table 1; x 1.6 own calibration to Celtic Interconnector (EIB 20180149) and Shetland HVDC Link (Shetland News 31.10.2023); O&M own assumption | F + A |
 | A23 | Cable length | Iceland 450 km, Scotland 400 km | NAEN (2016), p. 9 and Table 1 | F |
 | A24 | Discount rate | 5 % real | common value | A |
 | A25 | Existing plants are sunk | cost = additional yearly cost of the oil-free system | reader 7.2 | A |
@@ -135,7 +135,7 @@ Type: **F** = fact from a source, **G** = group decision, **A** = own assumption
 | A26b | Cable outages | not modelled: the cable is always available | group decision 27.11.2026 | G |
 | A27 | Curtailment free; perfect foresight over the year | | course model | F |
 | A28 | No grid inside the Faroes, no frequency or inertia | | course model | F |
-| A29 | Costs as published | price years differ (wind EUR2015, storage EUR2020), no inflation adjustment | DEA | A |
+| A29 | One price year for technology costs | wind, PV, battery, pumped hydro in EUR2020 (PV converted from EUR2025 with the DEA index, x 0.856); cable (x 1.6, about 2023) and import prices (nominal 2025/26) are NOT deflated | DEA el/DH v0019, storage v0011; [cost_data.md](cost_data.md) | A |
 | A30 | GB price | Elexon Market Index (APXMIDP) x 1.16 EUR/GBP | Elexon | A |
 
 ## Limitations

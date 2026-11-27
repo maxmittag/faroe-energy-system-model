@@ -12,6 +12,17 @@ Checks (must be ~0): `check_cost_sum_err_EUR`, `check_balance_err_max_MW`, `chec
 `summary_*.csv` in this folder use 3.5 % cable losses, Härtel cable cost x 1.6 and the C3S wind profile for new
 wind (`wind_profile=c3s`, the default before 27.11.2026).
 
+## DEA costs in one price year (EUR2020), 2030 sets
+
+New `technologies.csv` from the current DEA catalogues (el/DH v0019, storage v0011), see `docs/cost_data.md`.
+
+| Folder | Settings | Result (M EUR/yr) |
+|---|---|---|
+| `dea_eur2020/` | `is_2030 gb_2030`, defaults (power-curve wind, cable x 1.6) | no cable 44.5; Iceland size chosen 50.1 (49.2 MW); Scotland 56.9 (36.8 MW) |
+| `sens_cable_scale_1.41_eur2020/` | `is_2030 gb_2030 cable_scale=1.41` (cable also in EUR2020: 1.6 / 1.137) | no cable 44.5; Iceland 45.0 (49.2 MW); Scotland 52.4 (37.4 MW) |
+
+The folders below were run with the OLD `technologies.csv` (mixed price years).
+
 ## Power-curve wind profile (default since 27.11.2026, 2030 sets)
 
 | Folder | Settings |
