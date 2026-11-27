@@ -11,7 +11,7 @@ Everything the model needs is in this folder. Nothing has to be downloaded.
 | `input_today_iceland.csv` | today's demand, Iceland price |
 | `input_today_scotland.csv` | today's demand, Scotland (GB) price |
 | `base_sev_elma.csv` | step 1 output. The model takes the wind/solar availability of the **existing** farms from here (SEV output / installed capacity) |
-| `technologies.csv` | costs, lifetimes, efficiencies and existing capacities, with the source of every row |
+| `technologies.csv` | costs (DEA catalogues, 2030, EUR2020; step 6, see `docs/cost_data.md`), lifetimes, efficiencies and existing capacities, with the source of every row |
 | `checks/` | printed checks of the preparation steps (yearly sums, monthly tables, cleaning log) |
 
 Every hourly file has 8,760 rows (1 Oct 2025 00:00 to 30 Sep 2026 23:00, UTC) and the columns
@@ -30,6 +30,7 @@ The `pipeline/` scripts rebuild all of these from `raw/` and give byte-identical
 | `elma/` | Iceland day-ahead prices and volumes, hourly, Mar 2025 to Oct 2026, plus ECB daily ISK/EUR and USD/EUR rates | Elma (Icelandic power exchange), elma.is; European Central Bank, data-api.ecb.europa.eu | Iceland import price |
 | `era5/` | hourly wind speed at 100 m, Oct 2025 to Sep 2026 (`era5_wind_speed_100m_hourly.csv`: `time_utc`, `wind_speed_100m` in m/s) at 62.06 N / 6.85 W (central Streymoy, Húsahagi/Neshagi area; Open-Meteo snaps to its nearest grid point, 62.11 N / 6.96 W, 176 m) | ERA5 reanalysis (Copernicus/ECMWF) via the Open-Meteo historical weather API, `archive-api.open-meteo.com/v1/archive?latitude=62.06&longitude=-6.85&hourly=wind_speed_100m&wind_speed_unit=ms`. Retrieved Oct 2026, cut to the model year | availability of new wind (`ava_wind_pc`) |
 | `elexon/` | GB Market Index Data, half-hourly (gzip) | Elexon BMRS, data.elexon.co.uk | Scotland import price |
+| `dea/` | Danish Energy Agency *Technology Data* catalogues, official files unchanged: `technology_data_for_el_and_dh - 0019.xlsx` (electricity and district heating, version 0019) and `technology_datasheet_for_energy_storage - 0011.xlsx` (energy storage, version 0011) | Danish Energy Agency (Energistyrelsen), https://ens.dk/media/8615/download and https://ens.dk/media/6589/download (shared in the group by Connor, same versions) | `technologies.csv` via `pipeline/6_technologies_from_dea.py` (see `docs/cost_data.md`) |
 
 ## Licences and attribution
 
@@ -40,8 +41,10 @@ The `pipeline/` scripts rebuild all of these from `raw/` and give byte-identical
 - **ECB:** reuse permitted with the source named (European Central Bank).
 - **SEV, Elma:** publicly accessible on the providers' websites; no licence is stated. Included here only so that this
   non-commercial student project can be reproduced. Source: SEV (sev.fo), Elma (elma.is).
-- **Cost data in `technologies.csv`** (numbers only): Danish Energy Agency, *Technology Data* catalogues (electricity and
-  district heating, energy storage, energy transport); Tróndheim et al. (2021) for Faroese solar PV costs;
+- **DEA (`raw/dea/`):** CC BY 4.0 (stated on the front page of both files). *Source: Danish Energy Agency, Technology
+  Data for Generation of Electricity and District Heating (version 0019) and Technology Data for Energy Storage
+  (version 0011).* The files are included unchanged.
+- **Cost data in `technologies.csv`**: DEA catalogues above (wind, solar PV, Li-ion battery, pumped hydro);
   Ea Energy Analyses (2018) for the hydro reservoir; SEV plant list for existing capacities.
 
 ## Known weaknesses of the data

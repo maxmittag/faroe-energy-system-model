@@ -12,6 +12,17 @@ Checks (must be ~0): `check_cost_sum_err_EUR`, `check_balance_err_max_MW`, `chec
 `summary_*.csv` in this folder use 3.5 % cable losses, Härtel cable cost x 1.6 and the C3S wind profile for new
 wind (`wind_profile=c3s`, the default before 27.11.2026).
 
+## DEA costs in one price year (EUR2020), 2030 sets
+
+New `technologies.csv` from the current DEA catalogues (el/DH v0019, storage v0011), see `docs/cost_data.md`.
+
+| Folder | Settings | Result (M EUR/yr) |
+|---|---|---|
+| `dea_eur2020/` | `is_2030 gb_2030`, defaults (power-curve wind, cable x 1.6) | no cable 44.5; Iceland size chosen 50.1 (49.2 MW); Scotland 56.9 (36.8 MW) |
+| `sens_cable_scale_1.41_eur2020/` | `is_2030 gb_2030 cable_scale=1.41` (cable also in EUR2020: 1.6 / 1.137) | no cable 44.5; Iceland 45.0 (49.2 MW); Scotland 52.4 (37.4 MW) |
+
+The folders below were run with the OLD `technologies.csv` (mixed price years).
+
 ## Power-curve wind profile (default since 27.11.2026, 2030 sets)
 
 | Folder | Settings |
@@ -31,3 +42,8 @@ wind (`wind_profile=c3s`, the default before 27.11.2026).
 |---|---|---|
 | `sens_cable_scale_1.0/` | `is_2030 gb_2030 cable_scale=1.0` (unscaled Härtel formula) | no cable 40.4; Iceland size chosen 33.9 (48.8 MW), Scotland size chosen 42.7 (47.1 MW): **Iceland cable beats no cable** |
 | `sens_cable_scale_2.0/` | `is_2030 gb_2030 cable_scale=2.0` | no cable 40.4; Iceland size chosen 60.5 (43.1 MW), Scotland 66.8 (37.5 MW) |
+
+## Break-even cable price factor (DEA EUR2020 costs, 2030)
+
+`break_even.jl` -> `break_even/break_even_cable_scale.csv` (every iteration; last row per set = break-even):
+Iceland 1.39 (49 MW), Scotland 1.08 (39 MW). See `docs/cost_data.md`.

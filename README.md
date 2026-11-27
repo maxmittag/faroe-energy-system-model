@@ -28,14 +28,16 @@ Sets: `is_2030`, `gb_2030`, `is_today`, `gb_today` (`is` = Iceland, `gb` = Scotl
 
 ```
 run.jl              entry point: runs the scenarios, writes results/
+break_even.jl       break-even cable price factor (cable_scale) vs. no cable
 src/model.jl        the model: data loading, parameters, variables, objective, constraints
 src/report.jl       result table and checks (energy balance, oil = 0, cost components = objective)
 src/config.jl       all settings with their defaults
 data/processed/     the CSV files the model reads (see data/README.md)
-data/raw/           original downloads (SEV, Copernicus C3S, Elma, Elexon) with sources and licences
+data/raw/           original downloads (SEV, Copernicus C3S, ERA5, Elma, Elexon, DEA catalogues) with sources and licences
 pipeline/           Python scripts that turn data/raw into data/processed (optional, outputs are included)
 results/            model results
 docs/model.md       equations, all assumptions with sources, limitations
+docs/cost_data.md   technology costs: DEA sheets, price year EUR2020, old vs new values
 ```
 
 ## Data pipeline (optional)
@@ -49,6 +51,7 @@ python pipeline/2_add_c3s_profiles.py   # Copernicus C3S wind and solar profiles
 python pipeline/3_add_gb_price.py       # Elexon GB price -> input_today_scotland.csv
 python pipeline/4_scale_demand_2030.py  # demand x 1.186 -> input_2030_*.csv
 python pipeline/5_add_power_curve_wind.py  # ERA5 wind speed x V117 power curve -> column ava_wind_pc in all input_*.csv
+python pipeline/6_technologies_from_dea.py # DEA catalogues (data/raw/dea) -> technologies.csv, all costs EUR2020, 2030
 ```
 
 The scripts reproduce the files in `data/processed/` byte for byte. `pipeline/download/` documents how the raw data was
@@ -64,8 +67,9 @@ downloaded; it is not needed.
 - Existing wind farms use SEV output / installed capacity (capacity factor 0.27). New wind: ERA5 100 m wind speed
   through a Vestas V117 power curve minus 12 % losses (0.41, group decision 20.11.2026; setting `wind_profile=c3s`
   switches back to the Copernicus C3S profile, 0.64). New solar: Copernicus C3S.
-- Costs from the Danish Energy Agency technology catalogues (Faroe-specific solar costs from Tróndheim et al., 2021);
-  5 % discount rate.
+- Wind, solar, battery and pumped hydro costs from the current Danish Energy Agency technology catalogues
+  (el/DH v0019, storage v0011), year 2030, all in EUR2020; 5 % discount rate. Old vs new values, price years and
+  caveats: [docs/cost_data.md](docs/cost_data.md).
 - Cable 450 km to Iceland, 400 km to Scotland; cost = fixed part + part per MW (Härtel et al., 2017, x 1.6);
   3.5 % losses. Cable outages are not modelled (limitation, see docs/model.md).
 
