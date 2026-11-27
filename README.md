@@ -48,6 +48,7 @@ python pipeline/1_prepare_base.py       # SEV + Elma -> demand, hydro inflow, bi
 python pipeline/2_add_c3s_profiles.py   # Copernicus C3S wind and solar profiles -> input_today_iceland.csv
 python pipeline/3_add_gb_price.py       # Elexon GB price -> input_today_scotland.csv
 python pipeline/4_scale_demand_2030.py  # demand x 1.186 -> input_2030_*.csv
+python pipeline/5_add_power_curve_wind.py  # ERA5 wind speed x V117 power curve -> column ava_wind_pc in all input_*.csv
 ```
 
 The scripts reproduce the files in `data/processed/` byte for byte. `pipeline/download/` documents how the raw data was
@@ -60,8 +61,9 @@ downloaded; it is not needed.
 - The cable only imports. The neighbour delivers any amount up to the cable size at its hourly day-ahead price
   (Iceland: Elma; Scotland: Elexon GB price).
 - 2030 demand = today's hourly profile x 1.186 (578.5 GWh, peak 92.6 MW).
-- Existing wind farms use SEV output / installed capacity; new wind and solar use weather-based capacity factors
-  from Copernicus C3S.
+- Existing wind farms use SEV output / installed capacity (capacity factor 0.27). New wind: ERA5 100 m wind speed
+  through a Vestas V117 power curve minus 12 % losses (0.41, group decision 20.11.2026; setting `wind_profile=c3s`
+  switches back to the Copernicus C3S profile, 0.64). New solar: Copernicus C3S.
 - Costs from the Danish Energy Agency technology catalogues (Faroe-specific solar costs from Tróndheim et al., 2021);
   5 % discount rate.
 - Cable 450 km to Iceland, 400 km to Scotland; cost = fixed part + part per MW (Härtel et al., 2017, x 1.6);
@@ -73,6 +75,6 @@ The full list with sources is in [docs/model.md](docs/model.md).
 
 SEV (Faroese utility, hourly production per plant) · Copernicus Climate Change Service (ERA5-based capacity
 factors, CC BY 4.0) · Elma (Icelandic day-ahead market) · European Central Bank (exchange rates) · Elexon BMRS
-(GB market index price) · Danish Energy Agency Technology Data. Details and attribution: [data/README.md](data/README.md).
+(GB market index price) · ERA5 wind speed via Open-Meteo · Danish Energy Agency Technology Data. Details and attribution: [data/README.md](data/README.md).
 
 Code: MIT licence (see `LICENSE`). Data: see the licences of the sources.

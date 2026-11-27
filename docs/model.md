@@ -77,7 +77,17 @@ and realistic cost" (27.11.2026).
 | Setting | Default | Meaning |
 |---|---|---|
 | `cable_loss` | 0.035 | share of the imported energy lost in cable and converters (only $1-loss$ arrives, all is paid) |
+| `wind_profile` | `power_curve` | profile of NEW wind: `power_curve` = ERA5 wind speed x Vestas V117 power curve x (1 - 12 %), capacity factor 0.41 (column `ava_wind_pc`); `c3s` = Copernicus C3S, 0.64 (column `ava_wind`, used for all results before 27.11.2026) |
+| `existing_wind_profile` | `sev` | profile of the EXISTING 61.55 MW: `sev` = SEV output / installed capacity (0.27); `power_curve` = same profile as new wind |
 | `results_dir` | `results` | output folder |
+
+**Wind profile (power curve).** The C3S capacity factor of 0.64 is far above what Faroese parks deliver (Gellingaklettur
+about 0.45, Húsahagi about 0.40, actual output after curtailment, so a lower bound). Following the group decision of
+20.11.2026, new wind uses a profile built in `pipeline/5_add_power_curve_wind.py`: hourly ERA5 wind speed at 100 m
+(Open-Meteo ERA5 archive, 62.06 N / 6.85 W, central Streymoy) through a simplified Vestas V117-3.45 MW power curve
+(cut-in 3, rated 13, cut-out 25 m/s, hub ~100 m), minus 12 % for wake, availability and electrical losses (own
+assumption, same idea as renewables.ninja: reanalysis wind -> power curve -> correction, Staffell & Pfenninger 2016).
+Result: capacity factor 0.413, hourly correlation with C3S 0.87. The C3S column stays in the input files.
 
 ## Scenarios
 
@@ -104,7 +114,8 @@ Type: **F** = fact from a source, **G** = group decision, **A** = own assumption
 | A08 | Main grid only | Suðuroy (separate grid, about 7 % of Faroese demand) excluded | group | G |
 | A09 | Existing wind | 61.55 MW (Neshagi 4.65, Húsahagi 11.7, Gellingaklettur 25.2, Flatnahagi 18, Vestmanna 2) | SEV plant list | F |
 | A10 | Availability of existing wind | SEV output / installed capacity (capacity factor 0.27; contains curtailment) | SEV | G |
-| A11 | Availability of new wind and solar | Copernicus C3S, grid cell 62.25 N / 6.75 W (wind capacity factor 0.64, solar 0.083) | C3S | F + A |
+| A11 | Availability of new solar | Copernicus C3S, grid cell 62.25 N / 6.75 W (capacity factor 0.083) | C3S | F + A |
+| A11b | Availability of new wind | ERA5 100 m wind speed (Open-Meteo archive, 62.06 N / 6.85 W) x Vestas V117-3.45 MW power curve x (1 - 12 % losses): capacity factor 0.41 (C3S: 0.64, setting `wind_profile=c3s`) | group 20.11.2026; ERA5 (Copernicus/ECMWF) via Open-Meteo; Vestas datasheet (shape, rounded); losses own assumption after Staffell & Pfenninger (2016) | G + A |
 | A12 | Existing PV in the main grid | 0 MW | SEV | F |
 | A13 | One profile per technology, no site limits for new wind and PV | | stylised | A |
 | A14 | Existing hydro | 37.3 MW, one aggregated reservoir, 5.85 GWh usable (50 % of 11.7 GWh) | SEV plant list; Ea Energy Analyses (2018) | F |
@@ -131,8 +142,9 @@ Type: **F** = fact from a source, **G** = group decision, **A** = own assumption
 - **Price-taking neighbour.** Elma is a thin market; a 25-100 MW cable is as large as its whole traded volume. The model
   assumes Iceland always delivers at that price, also in dry years. With the GB price and free cable size, the result
   only follows the size limit.
-- **Wind availability.** Existing farms use curtailed SEV output (0.27), new wind the uncurtailed C3S profile (0.64).
-  Both levels are uncertain; the gap drives how much new wind is built.
+- **Wind availability.** Existing farms use curtailed SEV output (0.27), new wind an uncurtailed power-curve profile
+  (0.41; C3S gives 0.64). Both levels are uncertain; the gap drives how much new wind is built. The 12 % loss factor
+  and the single ERA5 point are own assumptions; real parks (~0.40-0.45 after curtailment) suggest 0.41 is not too high.
 - **Cable cost** uses one literature formula and one price factor (1.6) calibrated on only two, much larger links.
 - **Cable outages are not modelled** (group decision): the cable is always available and no backup plant is costed. A
   single subsea cable can fail for weeks (average repair about 60 days, ENTSO-E/Europacable), so the cable cases

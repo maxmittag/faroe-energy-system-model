@@ -15,7 +15,7 @@ include(joinpath(@__DIR__, "src", "model.jl"))
 include(joinpath(@__DIR__, "src", "report.jl"))
 
 # Wind/PV availability of the EXISTING farms: SEV output / installed capacity (group setting since 23.11.2026).
-# New capacity always uses the Copernicus C3S profile of the input file.
+# New wind: setting wind_profile (src/config.jl); new PV: Copernicus C3S profile of the input file.
 const EXISTING_AVA_FILE = "base_sev_elma.csv"
 
 #                 neighbour   demand    input file                  cable km

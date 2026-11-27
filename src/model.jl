@@ -32,9 +32,14 @@ settings (see src/config.jl), here the cable losses.
 function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::String, cfg)
     time_series = CSV.read(joinpath(DATA_DIR, input_file), DataFrame)
     # Existing wind (and PV) capacity uses the availability in `existing_ava_file`. With
-    # base_sev_elma.csv this is SEV output / installed capacity (current group setting); new capacity
-    # always uses the Copernicus C3S profile of the input file.
+    # base_sev_elma.csv this is SEV output / installed capacity (current group setting). Which wind
+    # profile new (and optionally existing) wind uses is set by wind_profile / existing_wind_profile.
     time_series_existing = CSV.read(joinpath(DATA_DIR, existing_ava_file), DataFrame)
+    # Wind profile (settings wind_profile / existing_wind_profile, src/config.jl):
+    # ava_wind_pc = ERA5 wind speed x V117 power curve x (1 - 12 %), ava_wind = C3S.
+    ava_wind_new = time_series[:, cfg.wind_profile == "power_curve" ? :ava_wind_pc : :ava_wind]
+    ava_wind_existing = cfg.existing_wind_profile == "power_curve" ? time_series[:, :ava_wind_pc] :
+                        time_series_existing[:, :ava_wind]
     tech_data = CSV.read(joinpath(DATA_DIR, "technologies.csv"), DataFrame)
     tech_data.technology = String.(tech_data.technology)
 
@@ -108,8 +113,9 @@ function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::S
         cable_km = cable_km, cable_scale = cable_scale, fix_x = fix_x, var_x = var_x,
         cable_loss = cfg.cable_loss,
         demand = time_series[:, :demand] |> Vector,                           # d_t, MW
-        availability = Dict("wind" => time_series[:, :ava_wind], "pv" => time_series[:, :ava_pv]),
-        availability_existing = Dict("wind" => time_series_existing[:, :ava_wind],
+        wind_profile = cfg.wind_profile, existing_wind_profile = cfg.existing_wind_profile,
+        availability = Dict("wind" => ava_wind_new, "pv" => time_series[:, :ava_pv]),
+        availability_existing = Dict("wind" => ava_wind_existing,
                                      "pv" => time_series_existing[:, :ava_pv]),
         bio = time_series[:, :biogas] |> Vector,                              # bio_t (new), fixed injection
         inflow = time_series[:, :hydro_inflow] |> Vector,                     # inflow_t (new), MWh per hour

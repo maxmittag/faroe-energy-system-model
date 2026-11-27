@@ -9,6 +9,15 @@ const DEFAULT_CONFIG = (
     # cable losses (cable + two converter stations), share of the imported energy.
     # North Sea Link 3.5-4 % (futurewatt.co.uk, author's estimate); our cable is shorter, so 3.5 % is on the safe side.
     cable_loss = 0.035,
+    # wind profile for NEW wind capacity (column of the input file):
+    #   "power_curve" = ERA5 100 m wind speed x Vestas V117 power curve x (1 - 12 % losses), CF 0.41 (ava_wind_pc,
+    #                   pipeline/5_add_power_curve_wind.py). Default, because the group decided on 20.11.2026 to move
+    #                   from 0.64 to about 0.42 (real parks: Gellingaklettur ~0.45, Húsahagi ~0.40).
+    #   "c3s"         = Copernicus C3S capacity factor, CF 0.64 (ava_wind; the setting of all results before this)
+    wind_profile = "power_curve",
+    # wind profile for the EXISTING 61.55 MW: "sev" = SEV output / installed capacity, CF 0.27 (Antonia's PR,
+    # group setting since 23.11.2026); "power_curve" = same profile as new wind (test: one profile for both)
+    existing_wind_profile = "sev",
     # output folder (relative to the repository root)
     results_dir = "results",
 )
@@ -32,6 +41,9 @@ function parse_config(args)
             push!(sets, a)
         end
     end
+    cfg[:wind_profile] in ("power_curve", "c3s") || error("wind_profile must be \"power_curve\" or \"c3s\"")
+    cfg[:existing_wind_profile] in ("sev", "power_curve") ||
+        error("existing_wind_profile must be \"sev\" or \"power_curve\"")
     0 <= cfg[:cable_loss] < 1 || error("cable_loss must be between 0 and 1")
     return sets, NamedTuple(cfg)
 end
