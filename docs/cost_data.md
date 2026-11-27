@@ -88,3 +88,24 @@ M EUR per year; full tables in `results/dea_eur2020/` (old costs: `results/wind_
 - The cable cases barely move (they build little wind/PV/storage): Iceland +0.2, Scotland -0.3.
 - So the gap no cable vs Iceland cable shrinks from 9.5 to 5.6 M EUR/yr; with an EUR2020-consistent cable price
   (x 1.41) it is 0.5 M EUR/yr, i.e. almost break-even. No cable is still cheapest in all runs.
+
+## Break-even cable price factor
+
+`julia --project=. break_even.jl` searches the `cable_scale` at which the cheapest cable case (size chosen by the
+model) costs as much as the no-cable system (44.53 M EUR/yr). Result: `results/break_even/break_even_cable_scale.csv`.
+
+| Neighbour | Break-even `cable_scale` | Cable size at break-even |
+|---|---|---|
+| Iceland | **1.39** | 49 MW |
+| Scotland | **1.08** | 39 MW |
+
+Compared with real projects (calibration of the 1.6, roughly 2023 prices, converted to EUR2020 with / 1.137):
+Celtic Interconnector about 1.7 -> 1.50, Shetland HVDC Link 1.6-1.9 -> 1.41-1.67.
+
+- Scotland: break-even far below every reference -> a cable does not pay.
+- Iceland: break-even 1.39 lies just below the lowest reference (1.41, margin about 1-2 %). Not robust on its own:
+  deflating the import price to EUR2020 as well would raise the break-even to about 1.42 (estimate: trade cost
+  6.35 M EUR/yr x (1 - 0.856/0.982) / 26.8 M EUR per unit of scale). Factors not in the model all push the real
+  cable cost or risk up: outages without backup (repair ~60 days), a thin Elma market taken as price-taker,
+  deeper and rougher route than the reference links. Faroe-specific PV costs (higher than DEA) would push the
+  no-cable cost up and the break-even up as well.

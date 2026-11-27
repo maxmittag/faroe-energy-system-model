@@ -42,3 +42,8 @@ The folders below were run with the OLD `technologies.csv` (mixed price years).
 |---|---|---|
 | `sens_cable_scale_1.0/` | `is_2030 gb_2030 cable_scale=1.0` (unscaled Härtel formula) | no cable 40.4; Iceland size chosen 33.9 (48.8 MW), Scotland size chosen 42.7 (47.1 MW): **Iceland cable beats no cable** |
 | `sens_cable_scale_2.0/` | `is_2030 gb_2030 cable_scale=2.0` | no cable 40.4; Iceland size chosen 60.5 (43.1 MW), Scotland 66.8 (37.5 MW) |
+
+## Break-even cable price factor (DEA EUR2020 costs, 2030)
+
+`break_even.jl` -> `break_even/break_even_cable_scale.csv` (every iteration; last row per set = break-even):
+Iceland 1.39 (49 MW), Scotland 1.08 (39 MW). See `docs/cost_data.md`.

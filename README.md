@@ -28,6 +28,7 @@ Sets: `is_2030`, `gb_2030`, `is_today`, `gb_today` (`is` = Iceland, `gb` = Scotl
 
 ```
 run.jl              entry point: runs the scenarios, writes results/
+break_even.jl       break-even cable price factor (cable_scale) vs. no cable
 src/model.jl        the model: data loading, parameters, variables, objective, constraints
 src/report.jl       result table and checks (energy balance, oil = 0, cost components = objective)
 src/config.jl       all settings with their defaults
