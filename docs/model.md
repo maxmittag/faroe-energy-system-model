@@ -77,6 +77,7 @@ and realistic cost" (27.11.2026).
 | Setting | Default | Meaning |
 |---|---|---|
 | `cable_loss` | 0.035 | share of the imported energy lost in cable and converters (only $1-loss$ arrives, all is paid) |
+| `cable_scale` | 1.6 | price-level factor on the Härtel cable cost (1.6 = lower end of Celtic / Shetland calibration; 1.0 = unscaled formula) |
 | `wind_profile` | `power_curve` | profile of NEW wind: `power_curve` = ERA5 wind speed x Vestas V117 power curve x (1 - 12 %), capacity factor 0.41 (column `ava_wind_pc`); `c3s` = Copernicus C3S, 0.64 (column `ava_wind`, used for all results before 27.11.2026) |
 | `existing_wind_profile` | `sev` | profile of the EXISTING 61.55 MW: `sev` = SEV output / installed capacity (0.27); `power_curve` = same profile as new wind |
 | `results_dir` | `results` | output folder |

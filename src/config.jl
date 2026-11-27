@@ -9,6 +9,10 @@ const DEFAULT_CONFIG = (
     # cable losses (cable + two converter stations), share of the imported energy.
     # North Sea Link 3.5-4 % (futurewatt.co.uk, author's estimate); our cable is shorter, so 3.5 % is on the safe side.
     cable_loss = 0.035,
+    # price-level factor on the Härtel et al. (2017) cable cost (group decision: one price scenario, 1.6).
+    # Own calibration: Celtic Interconnector actual / formula about 1.7, Shetland HVDC Link about 1.6-1.9;
+    # 1.6 = lower end. 1.0 = unscaled formula (Åland-Finland 100 MW reference, open reviewer question).
+    cable_scale = 1.6,
     # wind profile for NEW wind capacity (column of the input file):
     #   "power_curve" = ERA5 100 m wind speed x Vestas V117 power curve x (1 - 12 % losses), CF 0.41 (ava_wind_pc,
     #                   pipeline/5_add_power_curve_wind.py). Default, because the group decided on 20.11.2026 to move

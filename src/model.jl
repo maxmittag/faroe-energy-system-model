@@ -89,9 +89,9 @@ function load_inputs(input_file::String; cable_km::Float64, existing_ava_file::S
     N_p = 80.88e3            # EUR per MW per station   (converter, grows with size)
     N_0 = 28.38e6            # EUR per station          (converter, FIXED)
     n_stations = 2           # interconnector: one converter station at each end
-    # Price level: the 2011-16 parameters x 1.6 (group decision: one price scenario). Own calibration:
-    # Celtic Interconnector actual / formula about 1.7, Shetland HVDC Link about 1.6-1.9; 1.6 = lower end.
-    cable_scale = 1.6
+    # Price level: the 2011-16 parameters x cable_scale (setting, default 1.6, group decision: one price scenario).
+    # Own calibration: Celtic Interconnector actual / formula about 1.7, Shetland HVDC Link about 1.6-1.9; 1.6 = lower end.
+    cable_scale = cfg.cable_scale
     cable_lifetime = 40      # years (own assumption)
     cable_om = 0.01          # O&M per year, share of the investment (own assumption; was 2.5 % cable / 1.5 % converter)
     af_x = annuity_factor(cable_lifetime, interest_rate)
