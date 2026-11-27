@@ -24,3 +24,10 @@ wind (`wind_profile=c3s`, the default before 27.11.2026).
 | Folder | Settings |
 |---|---|
 | `test_isolation/` | `cable_loss=0`: only the new cable cost (test 1 of the PR) |
+
+## Sensitivity: cable price factor (power-curve wind, 2030 sets, defaults otherwise)
+
+| Folder | Settings | Result (M EUR/yr) |
+|---|---|---|
+| `sens_cable_scale_1.0/` | `is_2030 gb_2030 cable_scale=1.0` (unscaled Härtel formula) | no cable 40.4; Iceland size chosen 33.9 (48.8 MW), Scotland size chosen 42.7 (47.1 MW): **Iceland cable beats no cable** |
+| `sens_cable_scale_2.0/` | `is_2030 gb_2030 cable_scale=2.0` | no cable 40.4; Iceland size chosen 60.5 (43.1 MW), Scotland 66.8 (37.5 MW) |
