@@ -3,7 +3,7 @@
 #
 #    julia --project=. run.jl                 all four sets (about 20-25 min)
 #    julia --project=. run.jl is_2030         only one set: is_2030, gb_2030, is_today, gb_today
-#    julia --project=. run.jl is_2030 cable_loss=0 outage_hours=1344 backup=oil
+#    julia --project=. run.jl is_2030 cable_loss=0 results_dir=results/test_isolation
 #                                             change settings (all defaults: src/config.jl)
 #
 #  One set = one neighbour (Iceland "is" or Scotland "gb") and one demand case ("2030" or "today").
@@ -43,9 +43,7 @@ function run_set(key)
     println("\n== $key: $counterpart, $demand_case demand ($input), cable $km km, fix_x ",
         round(d.fix_x / 1e6, digits = 2), " MEUR/yr + var_x ", round(d.var_x), " EUR/MW/yr, demand ",
         round(sum(d.demand) / 1e3, digits = 1), " GWh, peak ", round(maximum(d.demand), digits = 1), " MW")
-    println("   cable loss ", round(100 * d.cable_loss, digits = 2), " %, outage ", d.outage_hours, " h",
-        d.outage_hours > 0 ? " from hour $(d.outage_start) ($(d.outage_start_time) UTC)" : "",
-        ", backup ", d.backup, d.backup == "oil" ? " at $(d.backup_vc) EUR/MWh" : ""); flush(stdout)
+    println("   cable loss ", round(100 * d.cable_loss, digits = 2), " %"); flush(stdout)
     rc(label; kw...) = run_case(d, label; demand_case = demand_case, merge((counterpart = counterpart,), kw)...)
     rows = DataFrame()
     if tag == "is"

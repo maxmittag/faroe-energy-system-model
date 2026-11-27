@@ -15,10 +15,10 @@ Needs [Julia](https://julialang.org/downloads) 1.10 or newer (tested with 1.13.1
 julia --project=. -e "using Pkg; Pkg.instantiate()"   # once: installs the pinned packages (JuMP, HiGHS, CSV, DataFrames)
 julia --project=. run.jl                              # all scenarios, about 20-25 min
 julia --project=. run.jl is_2030                      # only the main set (Iceland, 2030 demand), about 5 min
-julia --project=. run.jl is_2030 outage_hours=1344 backup=oil   # change settings (key=value)
+julia --project=. run.jl is_2030 cable_loss=0               # change settings (key=value)
 ```
 
-All settings and their defaults (cable losses 3.5 %, cable outage, backup during the outage, output folder) are in
+All settings and their defaults (cable losses 3.5 %, output folder) are in
 `src/config.jl`; see [docs/model.md](docs/model.md#settings).
 
 Results are written to `results/` (one row per case: cost, new capacities, imports, cost split and checks).
@@ -65,7 +65,7 @@ downloaded; it is not needed.
 - Costs from the Danish Energy Agency technology catalogues (Faroe-specific solar costs from Tróndheim et al., 2021);
   5 % discount rate.
 - Cable 450 km to Iceland, 400 km to Scotland; cost = fixed part + part per MW (Härtel et al., 2017, x 1.6);
-  3.5 % losses; optional outage of the cable in the worst weeks of the year.
+  3.5 % losses. Cable outages are not modelled (limitation, see docs/model.md).
 
 The full list with sources is in [docs/model.md](docs/model.md).
 

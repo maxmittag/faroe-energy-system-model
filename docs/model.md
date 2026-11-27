@@ -25,16 +25,16 @@ availability of existing capacity (SEV output / installed capacity); $g^{max}_p,
 $\eta^{in}_s, \eta^{out}_s$ efficiencies; $vc_p$ variable cost; $ann_p$ annuity incl. fixed O&M; $ntc$ cable size;
 $bio_t$ fixed biogas output; $inflow_t$ water into the hydro reservoir; $\pi_t$ import price; $fix_x$ fixed yearly cable
 cost, $var_x$ yearly cable cost per MW; $build$ = 1 if the run has a cable, else 0 (a parameter, not a variable);
-$loss$ cable losses; $OUT \subset T$ outage hours; $vc^{bu}$ cost of backup electricity.
+$loss$ cable losses.
 
 **Objective** (reader 7.1, plus trade and cable):
 
-$$\min C = \sum_{disp,t} vc_{disp} \, G_{disp,t} + \sum_{p \in \{wind,pv,battery,phs\}} ann_p \, CAP^G_p + \sum_{s} ann^L_s \, CAP^L_s + \sum_t \pi_t \,(F_{IS,FO,t} - F_{FO,IS,t}) + fix_x \cdot build + var_x \cdot ntc + \sum_{t \in OUT} vc^{bu} G_{oil,t}$$
+$$\min C = \sum_{disp,t} vc_{disp} \, G_{disp,t} + \sum_{p \in \{wind,pv,battery,phs\}} ann_p \, CAP^G_p + \sum_{s} ann^L_s \, CAP^L_s + \sum_t \pi_t \,(F_{IS,FO,t} - F_{FO,IS,t}) + fix_x \cdot build + var_x \cdot ntc$$
 
-with $ann_p = OC_p \cdot \frac{r(1+r)^{n_p}}{(1+r)^{n_p}-1} + fom_p$ and $r$ = 5 %. The backup term is only there with
-`backup = oil`.
+with $ann_p = OC_p \cdot \frac{r(1+r)^{n_p}}{(1+r)^{n_p}-1} + fom_p$ and $r$ = 5 %.
 
-**Cable cost** (Härtel et al. 2017, Eq. 2-3, average parameter set; ported from Lukas' PR2), with $l$ the cable length
+**Cable cost** (Härtel et al. 2017, Eq. 2-3, average parameter set; port of Lukas' PR "Cable: losses (3.5 %) and
+realistic cost", 27.11.2026), with $l$ the cable length
 in km, two converter stations, $s$ = 1.6 price-level factor, $af$ the 40-year annuity factor and 1 % O&M per year:
 
 $$fix_x = s\,(af + 0.01)\,\big(B_l\, l + B_0 + 2 N_0\big), \qquad var_x = s\,(af + 0.01)\,\big(B_{lp}\, l + 2 N_p\big)$$
@@ -58,13 +58,12 @@ $$\sum_{disp} G_{disp,t} + \sum_{res} \left( ava^{ex}_{res,t}\, g^{max}_{res} + 
 | Curtailment | $CU_t \le \sum_{res} \left( ava^{ex}_{res,t}\, g^{max}_{res} + ava_{res,t}\, CAP^G_{res} \right)$ |
 | Storage balance (cyclic) | $L^{stor}_{s,t+1} = L^{stor}_{s,t} + \eta^{in}_s D^{stor}_{s,t} - G_{s,t}/\eta^{out}_s$ |
 | Hydro reservoir (cyclic) | $L^{hyd}_{t+1} = L^{hyd}_t + inflow_t - G_{hydro,t} - SPILL_t$, $\;L^{hyd}_t \le l^{max}_{hydro}$ |
-| Without oil | $G_{oil,t} = 0$ (with `backup = oil`: only for $t \notin OUT$) |
+| Without oil | $G_{oil,t} = 0$ |
 | No new hydro or oil plants | $CAP^G_{hydro} = CAP^G_{oil} = 0$ |
 | Battery: one inverter | $CAP^G_{battery} = CAP^D_{battery}$ |
 | Pumped hydro site | $CAP^D_{phs} = 1.75\,CAP^G_{phs}$, $\;CAP^L_{phs} = 20\,CAP^G_{phs}$, $\;CAP^G_{phs} \le 40$ |
 | Cable (reader 6.4) | $F_{FO,IS,t} \le ntc$, $\;F_{IS,FO,t} \le ntc$, $\;F_{FO,IS,t} + F_{IS,FO,t} \le ntc$ |
 | Import only | $F_{FO,IS,t} = 0$ |
-| Cable outage | $F_{IS,FO,t} + F_{FO,IS,t} = 0 \quad \forall t \in OUT$ |
 | Cable size chosen by the model | $ntc = NTC$, $\;0 \le NTC \le cap$ (1,000 MW; Scotland 500 and 1,000 MW) |
 
 All variables are $\ge 0$. "Cyclic" means the level in the last hour connects to the first hour.
@@ -72,15 +71,12 @@ All variables are $\ge 0$. "Cyclic" means the level in the last hour connects to
 ## Settings
 
 All settings and their defaults are in `src/config.jl` (no hidden defaults); change them on the command line, e.g.
-`julia --project=. run.jl is_2030 outage_hours=1344 backup=oil`. Cable reliability is ported from Lukas' PR1.
+`julia --project=. run.jl is_2030 cable_loss=0`. Cable losses and cost are a port of Lukas' PR "Cable: losses (3.5 %)
+and realistic cost" (27.11.2026).
 
 | Setting | Default | Meaning |
 |---|---|---|
 | `cable_loss` | 0.035 | share of the imported energy lost in cable and converters (only $1-loss$ arrives, all is paid) |
-| `outage_hours` | 0 | length of one cable outage; 1,344 h = 8 weeks (typical repair), 672 h = 4 weeks (fast repair) |
-| `outage_start` | 0 | first outage hour; 0 = worst window of the year (most demand left after existing wind and biogas) |
-| `backup` | `none` | during the outage: `none` = local green backup (no oil), `oil` = existing Sund plant (86 MW, sunk) may run, only in outage hours of cable runs (the no-cable case stays oil-free) |
-| `backup_vc` | 150 | cost of backup electricity, EUR/MWh (**placeholder**, to be replaced with a sourced SEV or biodiesel value) |
 | `results_dir` | `results` | output folder |
 
 ## Scenarios
@@ -124,7 +120,7 @@ Type: **F** = fact from a source, **G** = group decision, **A** = own assumption
 | A24 | Discount rate | 5 % real | common value | A |
 | A25 | Existing plants are sunk | cost = additional yearly cost of the oil-free system | reader 7.2 | A |
 | A26 | Cable losses | 3.5 % of imports | North Sea Link 3.5-4 % (futurewatt.co.uk, author's estimate) | A |
-| A26b | Cable outage | default none; design case 8 weeks in the worst window | ENTSO-E & Europacable (2019): repair about 60 days | G + A |
+| A26b | Cable outages | not modelled: the cable is always available | group decision 27.11.2026 | G |
 | A27 | Curtailment free; perfect foresight over the year | | course model | F |
 | A28 | No grid inside the Faroes, no frequency or inertia | | course model | F |
 | A29 | Costs as published | price years differ (wind EUR2015, storage EUR2020), no inflation adjustment | DEA | A |
@@ -138,8 +134,9 @@ Type: **F** = fact from a source, **G** = group decision, **A** = own assumption
 - **Wind availability.** Existing farms use curtailed SEV output (0.27), new wind the uncurtailed C3S profile (0.64).
   Both levels are uncertain; the gap drives how much new wind is built.
 - **Cable cost** uses one literature formula and one price factor (1.6) calibrated on only two, much larger links.
-- **Outage** is a worst-case design run, not an expected yearly cost (a 450 km cable fails about once every 2-3 years).
-  Stability equipment needed without oil and CO2 of the oil backup are not costed; `backup_vc` is a placeholder.
+- **Cable outages are not modelled** (group decision): the cable is always available and no backup plant is costed. A
+  single subsea cable can fail for weeks (average repair about 60 days, ENTSO-E/Europacable), so the cable cases
+  are optimistic on security of supply.
 - **One weather year, perfect foresight, flat demand scaling** (the real 2030 profile is probably more winter-heavy).
 - **No grid physics.** Frequency, inertia and reserves are not modelled; running with exactly zero oil may need extra
   equipment that is not costed.

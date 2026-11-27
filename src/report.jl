@@ -23,10 +23,6 @@ function report(label, m, d, solve_s; counterpart, case_type, demand_case, ntc_f
     bal = [sum(value(G[g, t]) for g in DISP) + sum(value(feed_in[n, t]) for n in NONDISP) + d.bio[t] -
            sum(value(D_stor[s, t]) for s in S) - value(CU[t]) + (1 - d.cable_loss) * imp[t] - ex[t] - d.demand[t] for t in T]
     oil_max = maximum(value(G["oil", t]) for t in T)
-    # with an outage: oil may only run in outage hours (backup = "oil"); outside them it must be 0
-    oil_max_outside = maximum(value(G["oil", t]) for t in T if !(t in d.OUTAGE); init = 0.0)
-    backup_MWh = sum(value(G["oil", t]) for t in d.OUTAGE; init = 0.0)
-    backup_max = maximum(value(G["oil", t]) for t in d.OUTAGE; init = 0.0)
     # cost components (EUR per year), must add up to the objective
     c_inv_gen = sum(d.ic_generation_cap[p] * value(CAP_G[p]) for p in INV)
     c_inv_sto = sum(d.ic_storage_cap[s] * value(CAP_L[s]) for s in S)
@@ -35,7 +31,6 @@ function report(label, m, d, solve_s; counterpart, case_type, demand_case, ntc_f
     c_cable_fix = (endo || ntc_val > 0) ? d.fix_x : 0.0                 # same rule as `build` in model.jl
     c_cable_var = d.var_x * ntc_val
     c_cable = c_cable_fix + c_cable_var
-    c_backup = d.backup == "oil" ? d.backup_vc * backup_MWh : 0.0
     obj = objective_value(m)
     hit_cap = endo ? (ntc_val >= cap - 0.01) : false
     full_hours = ntc_val > 0 ? count(>=(ntc_val - 0.01), imp) : 0      # hours with the cable (almost) full
@@ -59,13 +54,9 @@ function report(label, m, d, solve_s; counterpart, case_type, demand_case, ntc_f
         c_trade_MEUR = c_trade / 1e6, c_cable_MEUR = c_cable / 1e6,
         c_cable_fix_MEUR = c_cable_fix / 1e6, c_cable_var_MEUR = c_cable_var / 1e6,
         cable_cost_per_MWh_imported = sum(imp) > 0 ? c_cable / (sum(imp) * d.dispatch_scale) : NaN,
-        c_backup_MEUR = c_backup / 1e6,
         cable_loss = d.cable_loss, import_lost_GWh = d.cable_loss * sum(imp) / 1e3,
-        outage_hours = d.outage_hours, outage_start_hour = d.outage_start, outage_start_utc = d.outage_start_time,
-        backup = d.backup, backup_vc = d.backup_vc, backup_GWh = backup_MWh / 1e3, backup_max_MW = backup_max,
-        check_cost_sum_err_EUR = c_inv_gen + c_inv_sto + c_var + c_trade + c_cable + c_backup - obj,
+        check_cost_sum_err_EUR = c_inv_gen + c_inv_sto + c_var + c_trade + c_cable - obj,
         check_balance_err_max_MW = maximum(abs.(bal)), check_oil_max_MW = oil_max,
-        check_oil_outside_outage_max_MW = oil_max_outside,
         check_export_max_MW = maximum(ex), check_import_max_MW = maximum(imp),
         solve_s = solve_s))
     println(rpad(label, 22), round(obj / 1e6, digits = 2), " MEUR/yr | cable ", round(ntc_val, digits = 1),
