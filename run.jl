@@ -3,11 +3,14 @@
 #
 #    julia --project=. run.jl                 all four sets (about 20-25 min)
 #    julia --project=. run.jl is_2030         only one set: is_2030, gb_2030, is_today, gb_today
+#    julia --project=. run.jl is_2030 cable_loss=0 results_dir=results/test_isolation
+#                                             change settings (all defaults: src/config.jl)
 #
 #  One set = one neighbour (Iceland "is" or Scotland "gb") and one demand case ("2030" or "today").
 #  Output: results/summary_<set>.csv (one row per case) and results/summary_2030.csv /
 #  results/summary_today.csv (both neighbours together).
 # =============================================================================
+include(joinpath(@__DIR__, "src", "config.jl"))
 include(joinpath(@__DIR__, "src", "model.jl"))
 include(joinpath(@__DIR__, "src", "report.jl"))
 
@@ -23,7 +26,8 @@ const SETS = Dict(
     "gb_today" => ("gb", "today", "input_today_scotland.csv", 400.0),
 )
 const ORDER = ["is_2030", "gb_2030", "is_today", "gb_today"]
-const RESULTS = joinpath(@__DIR__, "results")
+todo, CFG = parse_config(ARGS)
+const RESULTS = joinpath(@__DIR__, CFG.results_dir)
 
 function run_case(d, label; demand_case, counterpart, ntc = 0.0, endo = false, cap = NaN, case_type = "fixed")
     t0 = time()
@@ -34,11 +38,12 @@ end
 
 function run_set(key)
     tag, demand_case, input, km = SETS[key]
-    d = load_inputs(input; cable_km = km, existing_ava_file = EXISTING_AVA_FILE)
+    d = load_inputs(input; cable_km = km, existing_ava_file = EXISTING_AVA_FILE, cfg = CFG)
     counterpart = tag == "is" ? "Iceland" : "Scotland"
-    println("\n== $key: $counterpart, $demand_case demand ($input), cable $km km, ann_x ", round(d.ann_x),
-        " EUR/MW/yr, demand ", round(sum(d.demand) / 1e3, digits = 1), " GWh, peak ",
-        round(maximum(d.demand), digits = 1), " MW"); flush(stdout)
+    println("\n== $key: $counterpart, $demand_case demand ($input), cable $km km, fix_x ",
+        round(d.fix_x / 1e6, digits = 2), " MEUR/yr + var_x ", round(d.var_x), " EUR/MW/yr, demand ",
+        round(sum(d.demand) / 1e3, digits = 1), " GWh, peak ", round(maximum(d.demand), digits = 1), " MW")
+    println("   cable loss ", round(100 * d.cable_loss, digits = 2), " %"); flush(stdout)
     rc(label; kw...) = run_case(d, label; demand_case = demand_case, merge((counterpart = counterpart,), kw)...)
     rows = DataFrame()
     if tag == "is"
@@ -63,7 +68,7 @@ function run_set(key)
     return rows
 end
 
-todo = isempty(ARGS) ? ORDER : ARGS
+todo = isempty(todo) ? ORDER : todo
 foreach(k -> haskey(SETS, k) || error("unknown set $k, choose from $(join(ORDER, ", "))"), todo)
 mkpath(RESULTS)
 for k in todo
